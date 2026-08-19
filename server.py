@@ -1144,7 +1144,7 @@ def run_server():
     socketserver.TCPServer.allow_reuse_address = True
     
     # Auto open browser only in local dev (not on production server)
-    is_production = bool(os.environ.get("RAILWAY_STATIC_URL") or os.environ.get("RENDER") or os.environ.get("PORT"))
+    is_production = bool(os.environ.get("RAILWAY_STATIC_URL") or os.environ.get("RENDER") or os.environ.get("DYNO") or os.environ.get("PORT"))
     if not is_production:
         def open_browser():
             import time
@@ -1156,7 +1156,7 @@ def run_server():
                 pass
         threading.Thread(target=open_browser, daemon=True).start()
 
-    with socketserver.ThreadingTCPServer(("", PORT), PartyAppHandler) as httpd:
+    with socketserver.ThreadingTCPServer(("0.0.0.0", PORT), PartyAppHandler) as httpd:
         print(f"==================================================")
         print(f"  حزب حماة الوطن - تطبيق إدارة العضوية وقاعدة البيانات")
         print(f"  الخادم يعمل الآن على الرابط: http://localhost:{PORT}")

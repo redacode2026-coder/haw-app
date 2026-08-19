@@ -37,7 +37,7 @@
       align-items: center;
       justify-content: center;
       min-height: 100vh;
-      overflow: hidden;
+      overflow-y: auto;
       position: relative;
     }
 
@@ -399,7 +399,7 @@
         storage.setItem('haw_token', data.token);
         storage.setItem('haw_user',  JSON.stringify(data.user));
         // Redirect to main app
-        window.location.href = 'index.html';
+        window.location.href = 'app.html';
       } catch (err) {
         showError('تعذّر الاتصال بالخادم، يرجى إعادة المحاولة');
         setLoading(false);
@@ -418,19 +418,13 @@
       await doLogin(username, password, remember);
     });
 
-    function quickLogin(user, pass) {
-      document.getElementById('inp-username').value = user;
-      document.getElementById('inp-password').value = pass;
-      doLogin(user, pass, false);
-    }
-
     // If already logged in, redirect
     (function checkExisting() {
       const token = localStorage.getItem('haw_token') || sessionStorage.getItem('haw_token');
       if (token) {
         fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + token } })
           .then(r => r.json())
-          .then(d => { if (d.success) window.location.href = 'index.html'; })
+          .then(d => { if (d.success) window.location.href = 'app.html'; })
           .catch(() => {});
       }
     })();

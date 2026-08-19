@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.db
+server_out.txt
+server_error.txt
+server_output.txt
+test_export.xlsx
+*.bat
+build/
+dist/
+*.spec
+*.exe
+link.txt
+users.txt
+دليل_التشغيل.txt

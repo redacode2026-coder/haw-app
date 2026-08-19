@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>حزب حماة الوطن - منظومة طلبات العضوية وقاعدة البيانات</title>
+  
+  <!-- Google Fonts for premium Arabic typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@400;500;700;800&family=Amiri:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css?v=3.0">
+  <link rel="shortcut icon" href="assets/badge.jpg" type="image/jpeg">
+</head>
+<body>
+
+  <!-- Top App Navigation & Header -->
+  <header class="app-header no-print">
+    <div class="header-container">
+      <div class="brand-box">
+        <img src="assets/badge.jpg" alt="بادج حزب حماة الوطن - أمانة محافظة البحيرة" class="header-badge-img">
+        <div class="brand-text">
+          <h1>حزب حُماة الوطن</h1>
+          <p class="slogan">معاً نحميه .. معاً نبنيه &bull; أمانة محافظة البحيرة</p>
+        </div>
+      </div>
+
+      <nav class="nav-tabs" role="tablist">
+        <button class="nav-tab active" data-target="tab-form" id="btn-tab-form">
+          <span class="icon">📝</span>
+          <span>استمارة العضوية</span>
+        </button>
+        <button class="nav-tab" data-target="tab-database" id="btn-tab-database">
+          <span class="icon">🗄️</span>
+          <span>سجل الأعضاء والبيانات</span>
+          <span class="badge-count" id="header-member-count">0</span>
+        </button>
+        <button class="nav-tab" data-target="tab-stats" id="btn-tab-stats">
+          <span class="icon">📊</span>
+          <span>الإحصائيات والتقارير</span>
+        </button>
+        <button class="nav-tab" data-target="tab-print-preview" id="btn-tab-print-preview">
+          <span class="icon">🖨️</span>
+          <span>معاينة الطباعة الرسمية</span>
+        </button>
+        <button class="nav-tab" data-target="tab-users" id="btn-tab-users" onclick="fetchUsers()" style="display:none">
+          <span class="icon">👥</span>
+          <span>إدارة المستخدمين</span>
+        </button>
+      </nav>
+
+      <div class="header-actions">
+        <button class="btn-home-icon" onclick="switchTab('tab-form'); resetForm();" title="الصفحة الرئيسية">
+          🏠
+        </button>
+        <button class="btn btn-outline" id="btn-export-header" title="تصدير قاعدة البيانات إلى ملف Excel" onclick="exportCSV()">
+          📥 تصدير Excel
+        </button>
+        <button class="btn btn-primary" onclick="switchTab('tab-form'); resetForm();" id="btn-new-app">
+          ➕ طلب جديد
+        </button>
+        <!-- User Info -->
+        <div id="header-user-info" class="header-user-info"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Application Container -->
+  <main class="main-content">
+    
+    <!-- ========================================================================= -->
+    <!-- TAB 1: استمارة طلب العضوية الإلكترونية -->
+    <!-- ========================================================================= -->
+    <section id="tab-form" class="tab-pane active no-print">
+      <div class="form-wrapper">
+        
+        <!-- Form Header Card -->
+        <div class="form-title-card">
+          <div class="title-decor-badge">
+            <img src="assets/badge.jpg" alt="شعار حماة الوطن" class="badge-form-top">
+          </div>
+          <div class="title-details">
+            <span class="party-subhead">جمهورية مصر العربية &bull; حزب حماة الوطن</span>
+            <h2 id="form-main-heading">استمارة طلب عضوية</h2>
+            <p class="party-motto">"معاً نحميه .. معاً نبنيه - حزب كل المصريين"</p>
+          </div>
+          <div class="form-meta-tag">
+            <span class="meta-label" id="form-mode-label">طلب انضمام جديد</span>
+            <span class="meta-number" id="form-display-number">HW-BH-2026-XXXX</span>
+          </div>
+        </div>
+
+        <!-- نوع الطلب: عضو جديد أم تجديد عضوية -->
+        <div class="membership-type-selector-card">
+          <div class="selector-header">
+            <h3>📌 اختر نوع المعاملة :</h3>
+            <p>يرجى تحديد ما إذا كنت تنضم للحزب لأول مرة، أو عضو مسجل ترغب في تجديد العضوية وتحديث بياناتك</p>
+          </div>
+          <div class="mode-options-grid">
+            <label class="mode-option-card active" id="card-mode-new" onclick="setMembershipMode('new')">
+              <input type="radio" name="membership_mode" value="new" checked>
+              <div class="mode-content">
+                <span class="mode-icon">🌟</span>
+                <div class="mode-text">
+                  <strong>عضو جديد (طلب انضمام لأول مرة)</strong>
+                  <p>تسجيل استمارة عضوية جديدة وإدخال البيانات لأول مرة</p>
+                </div>
+              </div>
+            </label>
+
+            <label class="mode-option-card" id="card-mode-renew" onclick="setMembershipMode('renew')">
+              <input type="radio" name="membership_mode" value="renew">
+              <div class="mode-content">
+                <span class="mode-icon">🔄</span>
+                <div class="mode-text">
+                  <strong>عضو قائم (تجديد عضوية / تحديث بيانات)</strong>
+                  <p>استرجاع البيانات تلقائياً بالرقم القومي أو الاسم لتجديد العضوية</p>
+                </div>
+              </div>
+            </label>
+          </div>
+
+          <!-- صندوق البحث والاسترجاع للعضو القائم -->
+          <div id="renewal-search-box" class="renewal-search-container hidden">
+            <div class="renewal-search-inner">
+              <label for="renew-search-input">
+                <strong>🔍 استرجاع بيانات العضو المسجل من قاعدة البيانات :</strong>
+              </label>
+              <div class="search-input-group">
+                <input type="text" id="renew-search-input" placeholder="أدخل الرقم القومي (١٤ رقم) أو الاسم أو رقم العضوية..." autocomplete="off">
+                <button type="button" class="btn btn-primary" onclick="searchExistingMember()" id="btn-renew-search">
+                  ⚡ بحث واسترجاع البيانات
+                </button>
+              </div>
+              <div id="renew-search-results" class="search-dropdown-results hidden"></div>
+              <div id="renew-alert-box" class="renew-alert-box hidden"></div>
+            </div>
+          </div>
+        </div>
+
+        <form id="membership-form" class="official-form" novalidate>
+          <input type="hidden" id="edit-member-id" value="">
+
+          <!-- القسم الأول: البيانات الشخصية والوظيفية -->
+          <div class="form-section">
+            <div class="section-header">
+              <span class="section-num">١</span>
+              <h3>البيانات الشخصية وبيانات الإقامة والعمل</h3>
+            </div>
+
+            <div class="grid-2-cols">
+              
+              <!-- الاسم رباعي -->
+              <div class="form-group required">
+                <label for="full_name">الاســـم رباعـــي :</label>
+                <div class="input-wrap">
+                  <input type="text" id="full_name" name="full_name" required placeholder="أدخل الاسم رباعياً كما هو بالبطاقة" autocomplete="name">
+                </div>
+              </div>
+
+              <!-- اسم الشهرة -->
+              <div class="form-group">
+                <label for="nickname">اســـم الشهـــرة :</label>
+                <div class="input-wrap">
+                  <input type="text" id="nickname" name="nickname" placeholder="اسم الشهرة أو اللقب المعروف به">
+                </div>
+              </div>
+
+              <!-- الرقم القومي -->
+              <div class="form-group required">
+                <label for="national_id">الرقـــم القومـــي (١٤ رقماً) :</label>
+                <div class="input-wrap">
+                  <input type="text" id="national_id" name="national_id" maxlength="14" required placeholder="الرقم القومي المكون من 14 رقم" pattern="[0-9]{14}">
+                </div>
+                <small class="field-hint" id="nid-hint">سيتم استنتاج تاريخ الميلاد والمحافظة تلقائياً من الرقم القومي</small>
+              </div>
+
+              <!-- صادر من وتاريخه -->
+              <div class="grid-2-subcols">
+                <div class="form-group">
+                  <label for="id_issued_by">صــــادر مـــن :</label>
+                  <input type="text" id="id_issued_by" name="id_issued_by" placeholder="سجل مدني دمنهور / كفر الدوار...">
+                </div>
+                <div class="form-group">
+                  <label for="id_issue_date">بتاريـــــــــخ :</label>
+                  <input type="date" id="id_issue_date" name="id_issue_date">
+                </div>
+              </div>
+
+              <!-- البريد الإلكتروني -->
+              <div class="form-group">
+                <label for="email">البريد الإلكتروني :</label>
+                <div class="input-wrap">
+                  <input type="email" id="email" name="email" placeholder="example@domain.com" dir="ltr" class="ltr-input">
+                </div>
+              </div>
+
+              <!-- تاريخ الميلاد -->
+              <div class="form-group">
+                <label for="birth_date">تاريـــخ الميـــلاد :</label>
+                <input type="date" id="birth_date" name="birth_date">
+              </div>
+
+              <!-- محل الإقامة الحالي -->
+              <div class="form-group">
+                <label for="address">محل الإقامة الحالي :</label>
+                <input type="text" id="address" name="address" placeholder="العنوان بالتفصيل (المركز / الحي / الشارع)">
+              </div>
+
+              <!-- المحافظة -->
+              <div class="form-group">
+                <label for="governorate">المحافظــــــــــــــة :</label>
+                <select id="governorate" name="governorate" onchange="handleGovernorateChange()">
+                  <option value="البحيرة" selected>البحيرة</option>
+                  <option value="الإسكندرية">الإسكندرية</option>
+                  <option value="القاهرة">القاهرة</option>
+                  <option value="الجيزة">الجيزة</option>
+                  <option value="الغربية">الغربية</option>
+                  <option value="كفر الشيخ">كفر الشيخ</option>
+                  <option value="المنوفية">المنوفية</option>
+                  <option value="الشرقية">الشرقية</option>
+                  <option value="الدقهلية">الدقهلية</option>
+                  <option value="دمياط">دمياط</option>
+                  <option value="مرسى مطروح">مرسى مطروح</option>
+                  <option value="القليوبية">القليوبية</option>
+                  <option value="محافظة أخرى">محافظة أخرى...</option>
+                </select>
+              </div>
+
+              <!-- الدائرة الانتخابية (Combobox) -->
+              <div class="form-group" id="electoral-district-container">
+                <label for="electoral_district">الدائرة الانتخابيـة (المركز / البندر) :</label>
+                <select id="electoral_district" name="electoral_district" onchange="handleElectoralDistrictChange()">
+                  <option value="">-- اختر المركز أو الدائرة الانتخابية (محافظة البحيرة) --</option>
+                  <option value="بندر دمنهور">بندر دمنهور</option>
+                  <option value="مركز دمنهور">مركز دمنهور</option>
+                  <option value="بندر كفر الدوار">بندر كفر الدوار</option>
+                  <option value="مركز كفر الدوار">مركز كفر الدوار</option>
+                  <option value="ايتاي البارود">ايتاي البارود</option>
+                  <option value="الدلنجات">الدلنجات</option>
+                  <option value="كوم حمادة">كوم حمادة</option>
+                  <option value="شبراخيت">شبراخيت</option>
+                  <option value="الرحمانية">الرحمانية</option>
+                  <option value="المحمودية">المحمودية</option>
+                  <option value="رشيد">رشيد</option>
+                  <option value="ادكو">ادكو</option>
+                  <option value="ابوحمص">ابوحمص</option>
+                  <option value="حوش عيسى">حوش عيسى</option>
+                  <option value="ابو المطامير">ابو المطامير</option>
+                  <option value="النوبارية">النوبارية</option>
+                  <option value="بدر">بدر</option>
+                  <option value="وادى النطرون">وادى النطرون</option>
+                  <option value="other">مركز / دائرة أخرى (كتابة يدوية)...</option>
+                </select>
+                <input type="text" id="electoral_district_custom" name="electoral_district_custom" placeholder="اكتب اسم المركز / الدائرة الانتخابية يدوياً..." style="display:none; margin-top: 8px;">
+                <small class="field-hint">📍 قائمة منسدلة (Combobox) تحتوي على كافة مراكز وبنادر محافظة البحيرة للاختيار المباشر منها.</small>
+              </div>
+
+              <!-- النقابة المنتمي إليها -->
+              <div class="form-group">
+                <label for="syndicate">النقابة المنتمي إليها :</label>
+                <input type="text" id="syndicate" name="syndicate" placeholder="نقابة المهندسين / الأطباء / المعلمين / المحامين / التجاريين...">
+              </div>
+
+              <!-- آخر مؤهل ودرجة علمية -->
+              <div class="form-group">
+                <label for="qualification">آخر مؤهل ودرجة علمية :</label>
+                <input type="text" id="qualification" name="qualification" placeholder="بكالوريوس / ليسانس / ماجستير / دكتوراه / دبلوم...">
+              </div>
+
+              <!-- الوظيفة -->
+              <div class="form-group">
+                <label for="job_title">الوظيفـــــــــــــــــــة :</label>
+                <input type="text" id="job_title" name="job_title" placeholder="المسمى الوظيفي الحالي">
+              </div>
+
+              <!-- محل العمل -->
+              <div class="form-group">
+                <label for="workplace">محــــل العمـــــــل :</label>
+                <input type="text" id="workplace" name="workplace" placeholder="اسم الجهة أو الشركة أو المؤسسة">
+              </div>
+
+              <!-- قطاع العمل ومجالاته -->
+              <div class="form-group">
+                <label for="work_sector">قطاع العمل ومجالاته :</label>
+                <input type="text" id="work_sector" name="work_sector" placeholder="حكومي / خاص / أعمال حرة / قطاع طبي / تعليم / زراعي...">
+              </div>
+
+              <!-- رقم التليفون -->
+              <div class="form-group">
+                <label for="phone">رقـــــم التليفــــــون :</label>
+                <input type="text" id="phone" name="phone" placeholder="التليفون الأرضي (مع كود المحافظة)" dir="ltr" class="ltr-input">
+              </div>
+
+              <!-- رقم المحمول -->
+              <div class="form-group required">
+                <label for="mobile">رقــــم المحمـــــول :</label>
+                <input type="text" id="mobile" name="mobile" required placeholder="01xxxxxxxxx" dir="ltr" class="ltr-input" maxlength="11">
+              </div>
+
+            </div>
+
+            <!-- المناصب العامة أو التطوعية -->
+            <div class="form-group full-width" style="margin-top: 15px;">
+              <label for="public_positions">المناصب العامة أو التطوعية في أية جهات أو مؤسسات حالياً أو سابقاً :</label>
+              <textarea id="public_positions" name="public_positions" rows="2" placeholder="المناصب القيادية، الجمعيات الخيرية، المجالس التطوعية، النقابية أو المجتمعية..."></textarea>
+            </div>
+          </div>
+
+          <!-- القسم الثاني: الأنشطة التي يمكن المشاركة فيها -->
+          <div class="form-section">
+            <div class="section-header">
+              <span class="section-num">٢</span>
+              <h3>الأنشطة التي يمكن المشاركة فيها :</h3>
+            </div>
+            <p class="section-desc">حدد اللجان أو الأنشطة الحزبية التي ترغب في تفعيل عضويتك ومشاركتك من خلالها (يمكنك اختيار أكثر من نشاط):</p>
+
+            <div class="activities-grid">
+              <label class="activity-card">
+                <input type="checkbox" name="activities" value="شبابي">
+                <span class="card-box">
+                  <span class="act-icon">⚡</span>
+                  <span class="act-title">شبابي</span>
+                </span>
+              </label>
+
+              <label class="activity-card">
+                <input type="checkbox" name="activities" value="ثقافي">
+                <span class="card-box">
+                  <span class="act-icon">📚</span>
+                  <span class="act-title">ثقافي</span>
+                </span>
+              </label>
+
+              <label class="activity-card">
+                <input type="checkbox" name="activities" value="سياسي">
+                <span class="card-box">
+                  <span class="act-icon">🏛️</span>
+                  <span class="act-title">سياسي</span>
+                </span>
+              </label>
+
+              <label class="activity-card">
+                <input type="checkbox" name="activities" value="علمي">
+                <span class="card-box">
+                  <span class="act-icon">🔬</span>
+                  <span class="act-title">علمي</span>
+                </span>
+              </label>
+
+              <label class="activity-card">
+                <input type="checkbox" name="activities" value="مرأة">
+                <span class="card-box">
+                  <span class="act-icon">👩</span>
+                  <span class="act-title">مرأة</span>
+                </span>
+              </label>
+
+              <label class="activity-card">
+                <input type="checkbox" name="activities" value="جماهيري">
+                <span class="card-box">
+                  <span class="act-icon">👥</span>
+                  <span class="act-title">جماهيري</span>
+                </span>
+              </label>
+
+              <label class="activity-card">
+                <input type="checkbox" name="activities" value="تنظيم">
+                <span class="card-box">
+                  <span class="act-icon">📋</span>
+                  <span class="act-title">تنظيم</span>
+                </span>
+              </label>
+
+              <label class="activity-card">
+                <input type="checkbox" name="activities" value="إعلام">
+                <span class="card-box">
+                  <span class="act-icon">🎙️</span>
+                  <span class="act-title">إعلام</span>
+                </span>
+              </label>
+
+              <label class="activity-card">
+                <input type="checkbox" name="activities" value="علاقات عامة">
+                <span class="card-box">
+                  <span class="act-icon">🤝</span>
+                  <span class="act-title">علاقات عامة</span>
+                </span>
+              </label>
+
+              <label class="activity-card">
+                <input type="checkbox" name="activities" value="رياضي">
+                <span class="card-box">
+                  <span class="act-icon">⚽</span>
+                  <span class="act-title">رياضي</span>
+                </span>
+              </label>
+
+              <label class="activity-card">
+                <input type="checkbox" name="activities" value="استراتيجي">
+                <span class="card-box">
+                  <span class="act-icon">🎯</span>
+                  <span class="act-title">استراتيجي</span>
+                </span>
+              </label>
+            </div>
+          </div>
+
+          <!-- القسم الثالث: الانتماء لأحزاب أخرى والترشح للانتخابات -->
+          <div class="form-section">
+            <div class="section-header">
+              <span class="section-num">٣</span>
+              <h3>السجل السياسي والانتخابي السابق</h3>
+            </div>
+
+            <!-- هل سبق الانتماء لأحزاب أخرى -->
+            <div class="conditional-block">
+              <div class="radio-question">
+                <span class="q-title">هل سبق الانتماء لأحزاب أخرى ؟</span>
+                <div class="radio-options">
+                  <label class="radio-label">
+                    <input type="radio" name="previous_parties_status" value="yes" onchange="togglePartiesDetails(true)">
+                    <span>(نعم)</span>
+                  </label>
+                  <label class="radio-label">
+                    <input type="radio" name="previous_parties_status" value="no" checked onchange="togglePartiesDetails(false)">
+                    <span>(لا)</span>
+                  </label>
+                </div>
+              </div>
+
+              <div id="parties-details-box" class="sub-fields-box hidden">
+                <p class="sub-instruction">في حال نعم اذكر اسم الحزب أو الأحزاب خلال آخر ٢٠ سنة :</p>
+                <div class="grid-2-cols">
+                  <div class="form-group inline-numbered">
+                    <span class="item-num">١-</span>
+                    <input type="text" id="prev_party_1" placeholder="اسم الحزب الأول">
+                  </div>
+                  <div class="form-group inline-numbered">
+                    <span class="item-num">٣-</span>
+                    <input type="text" id="prev_party_3" placeholder="اسم الحزب الثالث">
+                  </div>
+                  <div class="form-group inline-numbered">
+                    <span class="item-num">٢-</span>
+                    <input type="text" id="prev_party_2" placeholder="اسم الحزب الثاني">
+                  </div>
+                  <div class="form-group inline-numbered">
+                    <span class="item-num">٤-</span>
+                    <input type="text" id="prev_party_4" placeholder="اسم الحزب الرابع">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <hr class="section-divider">
+
+            <!-- هل سبق الترشح في أية انتخابات -->
+            <div class="conditional-block">
+              <div class="radio-question">
+                <span class="q-title">هل سبق الترشح في أية انتخابات من قبل ؟</span>
+                <div class="radio-options">
+                  <label class="radio-label">
+                    <input type="radio" name="elections_nomination_status" value="yes" onchange="toggleElectionsDetails(true)">
+                    <span>(نعم)</span>
+                  </label>
+                  <label class="radio-label">
+                    <input type="radio" name="elections_nomination_status" value="no" checked onchange="toggleElectionsDetails(false)">
+                    <span>(لا)</span>
+                  </label>
+                </div>
+              </div>
+
+              <div id="elections-details-box" class="sub-fields-box hidden">
+                <p class="sub-instruction">في حال ذكر نعم برجاء ذكر جهة الترشيح :</p>
+                <div class="election-entities-wrap">
+                  <label class="check-inline"><input type="checkbox" name="elections_entities" value="مجلس نواب"> مجلس نواب</label>
+                  <label class="check-inline"><input type="checkbox" name="elections_entities" value="مجلس شيوخ"> مجلس شيوخ</label>
+                  <label class="check-inline"><input type="checkbox" name="elections_entities" value="أندية نقابات"> أندية نقابات</label>
+                  <label class="check-inline"><input type="checkbox" name="elections_entities" value="مجالس محلية"> مجالس محلية</label>
+                  <label class="check-inline"><input type="checkbox" name="elections_entities" value="اتحادات رياضية"> اتحادات رياضية</label>
+                  <label class="check-inline"><input type="checkbox" name="elections_entities" value="مراكز شباب"> مراكز شباب</label>
+                  <label class="check-inline"><input type="checkbox" name="elections_entities" value="اتحادات طلابية"> اتحادات طلابية</label>
+                  <label class="check-inline"><input type="checkbox" name="elections_entities" value="أخرى" id="chk-election-other" onchange="document.getElementById('elections_other_entity').disabled = !this.checked"> أخرى :</label>
+                  <input type="text" id="elections_other_entity" name="elections_other_entity" placeholder="حدد جهة الترشيح الأخرى" disabled class="small-text-input">
+                </div>
+
+                <div class="form-group full-width" style="margin-top: 15px;">
+                  <label for="elections_details">برجاء إثبات أعوام الترشح ونتيجتها وأية بيانات ترغب في إثباتها بشأن النشاط العام والسياسي :</label>
+                  <textarea id="elections_details" name="elections_details" rows="2" placeholder="اكتب تفاصيل أعوام الترشح والنتائج المحققة والمشاركات العامة..."></textarea>
+                </div>
+              </div>
+            </div>
+
+            <hr class="section-divider">
+
+            <!-- اسم مؤيد الطلب وصفته -->
+            <div class="grid-2-cols">
+              <div class="form-group">
+                <label for="endorser_name">اسم مؤيد الطلب :</label>
+                <input type="text" id="endorser_name" name="endorser_name" placeholder="اسم العضو أو القيادي المؤيد للطلب">
+              </div>
+              <div class="form-group">
+                <label for="endorser_title">صفتـــــــــــه :</label>
+                <input type="text" id="endorser_title" name="endorser_title" placeholder="صفته الحزبية أو الوظيفية">
+              </div>
+            </div>
+          </div>
+
+          <!-- القسم الرابع: المرفقات (الصورة الشخصية وبطاقة الرقم القومي) -->
+          <div class="form-section">
+            <div class="section-header">
+              <span class="section-num">٤</span>
+              <h3>المرفقات والمستندات المطلوبة (صورة البطاقة + صور شخصية)</h3>
+            </div>
+            
+            <div class="grid-2-cols upload-section">
+              
+              <!-- الصورة الشخصية -->
+              <div class="upload-card">
+                <div class="upload-info">
+                  <span class="upload-icon">👤</span>
+                  <h4>الصورة الشخصية (حديثة)</h4>
+                  <p>مرفق ٢ صورة شخصية للمتقدم</p>
+                </div>
+                <div class="upload-control">
+                  <input type="file" id="input_photo" accept="image/*" class="file-input-hidden" onchange="handleFilePreview(this, 'preview_photo')">
+                  <label for="input_photo" class="btn btn-file">📁 اختيار صورة</label>
+                  <div class="preview-box" id="box_preview_photo">
+                    <img id="preview_photo" src="assets/badge.jpg" alt="معاينة الصورة الشخصية">
+                  </div>
+                </div>
+              </div>
+
+              <!-- صورة بطاقة الرقم القومي -->
+              <div class="upload-card">
+                <div class="upload-info">
+                  <span class="upload-icon">🪪</span>
+                  <h4>صورة بطاقة الرقم القومي</h4>
+                  <p>مرفق صورة بطاقة الرقم القومي سارية</p>
+                </div>
+                <div class="upload-control">
+                  <input type="file" id="input_national_id" accept="image/*" class="file-input-hidden" onchange="handleFilePreview(this, 'preview_national_id')">
+                  <label for="input_national_id" class="btn btn-file">📁 اختيار صورة البطاقة</label>
+                  <div class="preview-box id-card-preview" id="box_preview_nid">
+                    <img id="preview_national_id" src="assets/badge.jpg" alt="معاينة بطاقة الرقم القومي">
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- القسم الخامس: التعليمات والإقرار الرسمي (تكتب كما هي دون أي تحريف) -->
+          <div class="form-section pledge-section">
+            <div class="pledge-header">
+              <span class="badge-eagle">🦅</span>
+              <h3>السيد الفريق / رئيس الحزب</h3>
+            </div>
+
+            <div class="official-pledge-text">
+              <p>
+                <strong>« أرغب في الانضمام لحزب حماة الوطن .. مؤمناً بلائحته وأهدافه .. مقدراً لكل جهد من أجل رفعة مصرنا الحبيبة وأقر أنني لست عضواً في أي حزب سياسي آخر وبياناتي عالية صحيحة وعلى مسئوليتي. وهذا إقرار مني بذلك ... »</strong>
+              </p>
+            </div>
+
+            <div class="pledge-signatures-grid">
+              <div class="sig-col">
+                <div class="sig-row">
+                  <span class="sig-title">التاريـــــخ :</span>
+                  <span class="sig-val" id="pledge-date-val">2026 / 08 / 15</span>
+                </div>
+                <div class="sig-row">
+                  <span class="sig-title">الـــــرأي :</span>
+                  <span class="sig-val text-muted">[ خاص بأمانة شئون العضوية ]</span>
+                </div>
+              </div>
+
+              <div class="sig-col">
+                <div class="sig-row">
+                  <span class="sig-title">الاســـــم :</span>
+                  <span class="sig-val font-bold" id="pledge-name-val">مقدم الطلب</span>
+                </div>
+                <div class="sig-row">
+                  <span class="sig-title">التوقيــــع :</span>
+                  <div class="signature-line-box">
+                    <label class="check-pledge">
+                      <input type="checkbox" id="pledge-agreed" required checked>
+                      <span>أقر بصحة البيانات وموافقتي على نص الإقرار أعلاه</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="official-footer-note">
+              <div class="officer-box">
+                <span class="note-attachments">📌 مرفق صورة الرقم القومي + ٢ صورة شخصية</span>
+                <span class="officer-sign">أمين شئون العضوية : ( ............................................... )</span>
+              </div>
+              <div class="party-seal-text">
+                حزب حماة الوطن - حزب كل المصريين
+              </div>
+            </div>
+          </div>
+
+          <!-- أزرار الإجراءات -->
+          <div class="form-actions-bar">
+            <button type="submit" class="btn btn-success btn-lg" id="btn-submit-form">
+              💾 حفظ وتسجيل الاستمارة في قاعدة البيانات
+            </button>
+            <button type="button" class="btn btn-secondary btn-lg" onclick="saveAndPrintPreview()">
+              🖨️ حفظ ومعاينة الطباعة الرسمية
+            </button>
+            <button type="button" class="btn btn-outline btn-lg" onclick="resetForm()">
+              🔄 تفريغ الحقول
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 2: سجل وقاعدة بيانات الأعضاء (Dashboard) -->
+    <!-- ========================================================================= -->
+    <section id="tab-database" class="tab-pane no-print">
+      <div class="database-wrapper">
+        
+        <!-- Dashboard Top Bar -->
+        <div class="db-header-card">
+          <div class="db-title-area">
+            <h2>سجل أعضاء حزب حماة الوطن</h2>
+            <p>قاعدة البيانات المركزية لأمانة محافظة البحيرة - عرض وتصفية وبحث وطباعة الاستمارات</p>
+          </div>
+          <div class="db-actions-area">
+            <button class="btn btn-excel" onclick="exportCSV()">
+              📊 تصدير البيانات إلى Excel (CSV)
+            </button>
+            <button class="btn btn-primary" onclick="switchTab('tab-form'); resetForm();">
+              ➕ إضافة استمارة جديدة
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter & Search Controls -->
+        <div class="filter-card">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="search-input" placeholder="ابحث بالاسم، الرقم القومي، رقم المحمول، الدائرة، الوظيفة..." onkeyup="debounceSearch()">
+          </div>
+
+          <div class="filter-dropdowns">
+            <div class="filter-item">
+              <label>اللجنة / النشاط :</label>
+              <select id="filter-activity" onchange="fetchMembers()">
+                <option value="">جميع الأنشطة واللجان</option>
+                <option value="شبابي">شبابي</option>
+                <option value="ثقافي">ثقافي</option>
+                <option value="سياسي">سياسي</option>
+                <option value="علمي">علمي</option>
+                <option value="مرأة">مرأة</option>
+                <option value="جماهيري">جماهيري</option>
+                <option value="تنظيم">تنظيم</option>
+                <option value="إعلام">إعلام</option>
+                <option value="علاقات عامة">علاقات عامة</option>
+                <option value="رياضي">رياضي</option>
+                <option value="استراتيجي">استراتيجي</option>
+              </select>
+            </div>
+
+            <div class="filter-item">
+              <label>حالة الطلب :</label>
+              <select id="filter-status" onchange="fetchMembers()">
+                <option value="">جميع الحالات</option>
+                <option value="قيد المراجعة">قيد المراجعة</option>
+                <option value="معتمد">معتمد</option>
+                <option value="مقبول">مقبول</option>
+                <option value="مرفوض">مرفوض</option>
+              </select>
+            </div>
+
+            <div class="filter-item">
+              <label>المحافظة :</label>
+              <select id="filter-governorate" onchange="handleFilterGovChange()">
+                <option value="">جميع المحافظات</option>
+                <option value="البحيرة">البحيرة</option>
+                <option value="الإسكندرية">الإسكندرية</option>
+                <option value="القاهرة">القاهرة</option>
+                <option value="الجيزة">الجيزة</option>
+                <option value="الغربية">الغربية</option>
+                <option value="كفر الشيخ">كفر الشيخ</option>
+              </select>
+            </div>
+
+            <div class="filter-item" id="filter-district-item">
+              <label>الدائرة الانتخابية :</label>
+              <select id="filter-district" onchange="fetchMembers()">
+                <option value="">جميع الدوائر</option>
+                <option value="بندر دمنهور">بندر دمنهور</option>
+                <option value="مركز دمنهور">مركز دمنهور</option>
+                <option value="ايتاي البارود">ايتاي البارود</option>
+                <option value="الدلنجات">الدلنجات</option>
+                <option value="كوم حمادة">كوم حمادة</option>
+                <option value="شبراخيت">شبراخيت</option>
+                <option value="الرحمانية">الرحمانية</option>
+                <option value="المحمودية">المحمودية</option>
+                <option value="رشيد">رشيد</option>
+                <option value="ادكو">ادكو</option>
+                <option value="بندر كفر الدوار">بندر كفر الدوار</option>
+                <option value="مركز كفر الدوار">مركز كفر الدوار</option>
+                <option value="ابوحمص">ابوحمص</option>
+                <option value="حوش عيسى">حوش عيسى</option>
+                <option value="ابو المطامير">ابو المطامير</option>
+                <option value="النوبارية">النوبارية</option>
+                <option value="بدر">بدر</option>
+                <option value="وادى النطرون">وادى النطرون</option>
+              </select>
+            </div>
+
+            <button class="btn btn-outline" onclick="resetFilters()">
+              إعادة ضبط
+            </button>
+          </div>
+        </div>
+
+        <!-- Members Table -->
+        <div class="table-container">
+          <table class="members-table" id="members-table">
+            <thead>
+              <tr>
+                <th>م</th>
+                <th>رقم العضوية</th>
+                <th>الاسم رباعي</th>
+                <th>الرقم القومي</th>
+                <th>المحافظة / الدائرة</th>
+                <th>المحمول</th>
+                <th>الوظيفة</th>
+                <th>الأنشطة واللجان</th>
+                <th>الحالة</th>
+                <th>الإجراءات والطباعة</th>
+              </tr>
+            </thead>
+            <tbody id="members-table-body">
+              <!-- Loaded dynamically via JS -->
+            </tbody>
+          </table>
+          <div id="table-loading" class="loading-state hidden">
+            <div class="spinner"></div>
+            <p>جاري تحميل سجلات الأعضاء...</p>
+          </div>
+          <div id="table-empty" class="empty-state hidden">
+            <span class="empty-icon">📂</span>
+            <h3>لا توجد استمارات مطابقة للبحث</h3>
+            <p>يمكنك تسجيل طلب عضوية جديد أو تغيير معايير البحث والفلترة أعلاه.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 3: الإحصائيات والتقارير -->
+    <!-- ========================================================================= -->
+    <section id="tab-stats" class="tab-pane no-print">
+      <div class="stats-wrapper">
+        <div class="db-header-card">
+          <div class="db-title-area">
+            <h2>إحصائيات وتقارير طلبات العضوية</h2>
+            <p>نظرة عامة على أعداد العضويات وتوزيع اللجان الحزبية والمحافظات</p>
+          </div>
+        </div>
+
+        <!-- Stats Counter Cards -->
+        <div class="stats-cards-grid">
+          <div class="stat-card stat-gold">
+            <div class="stat-icon">👥</div>
+            <div class="stat-info">
+              <span class="stat-label">إجمالي الاستمارات المسجلة</span>
+              <h3 id="stat-total-count">0</h3>
+            </div>
+          </div>
+
+          <div class="stat-card stat-green">
+            <div class="stat-icon">✅</div>
+            <div class="stat-info">
+              <span class="stat-label">العضويات المعتمدة</span>
+              <h3 id="stat-approved-count">0</h3>
+            </div>
+          </div>
+
+          <div class="stat-card stat-yellow">
+            <div class="stat-icon">⏳</div>
+            <div class="stat-info">
+              <span class="stat-label">الطلبات قيد المراجعة</span>
+              <h3 id="stat-pending-count">0</h3>
+            </div>
+          </div>
+
+          <div class="stat-card stat-blue">
+            <div class="stat-icon">🏛️</div>
+            <div class="stat-info">
+              <span class="stat-label">أمانة البحيرة</span>
+              <h3 id="stat-beheira-count">0</h3>
+            </div>
+          </div>
+        </div>
+
+        <!-- Activities Breakdown Chart / Cards -->
+        <div class="stats-section-card">
+          <h3>توزيع رغبات المشاركة في اللجان والأنشطة الحزبية</h3>
+          <div class="activities-stats-bars" id="activities-stats-container">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 4 & PRINT: استمارة الطباعة الرسمية A4 طبق الأصل -->
+    <!-- ========================================================================= -->
+    <section id="tab-print-preview" class="tab-pane">
+      
+      <!-- Top Print Action Bar (Hidden when printing) -->
+      <div class="print-control-bar no-print">
+        <div class="print-info">
+          <h3>🖨️ نموذج الطباعة الرسمي (A4)</h3>
+          <p>استمارة عضوية مطابقة للنموذج الورقي الرسمي لحزب حماة الوطن جاهزة للطباعة أو الحفظ كـ PDF</p>
+        </div>
+        <div class="print-buttons">
+          <button class="btn btn-success btn-lg" onclick="window.print()">
+            🖨️ طباعة الاستمارة الآن (Print / PDF)
+          </button>
+          <button class="btn btn-outline" onclick="switchTab('tab-database')">
+            🔙 العودة لسجل الأعضاء
+          </button>
+        </div>
+      </div>
+
+      <!-- A4 Page Container (This matches Image 2 exactly) -->
+      <div class="a4-sheet-container" id="printable-sheet">
+        
+        <!-- Watermark Badge -->
+        <div class="watermark-bg">
+          <img src="assets/badge.jpg" alt="العلامة المائية لحزب حماة الوطن">
+        </div>
+
+        <!-- Official Header -->
+        <header class="sheet-header">
+          <!-- Top Right -->
+          <div class="header-right-col">
+            <h2 class="party-name-bold">حزب حُماة الوطن</h2>
+            <p class="party-slogan-line">معاً نحميه .. معاً نبنيه</p>
+          </div>
+
+          <!-- Top Left Party Logo -->
+          <div class="header-left-col">
+            <div class="logo-wrapper-print">
+              <img src="assets/badge.jpg" alt="شعار حزب حماة الوطن" class="official-badge-sheet">
+            </div>
+          </div>
+        </header>
+
+        <!-- Form Main Title -->
+        <div class="sheet-main-title">
+          <h1>استمارة طلب عضوية</h1>
+        </div>
+
+        <!-- Form Rows (Personal & Professional Data) -->
+        <div class="sheet-data-table">
+          
+          <!-- Row 1: الاسم رباعي & اسم الشهرة -->
+          <div class="sheet-row">
+            <div class="sheet-cell cell-right">
+              <span class="label-txt">الاســـم رباعـــي :</span>
+              <span class="dotted-fill" id="print-full-name">...........................................................................</span>
+            </div>
+            <div class="sheet-cell cell-left">
+              <span class="label-txt">اســـم الشهـــرة :</span>
+              <span class="dotted-fill" id="print-nickname">...................................................</span>
+            </div>
+          </div>
+
+          <!-- Row 2: الرقم القومي & صادر من & بتاريخ -->
+          <div class="sheet-row">
+            <div class="sheet-cell cell-right">
+              <span class="label-txt">الرقـــم القومـــي :</span>
+              <span class="dotted-fill" id="print-national-id">...........................................................................</span>
+            </div>
+            <div class="sheet-cell cell-left sub-split">
+              <div class="sub-part">
+                <span class="label-txt">صادر من :</span>
+                <span class="dotted-fill" id="print-issued-by">........................</span>
+              </div>
+              <div class="sub-part">
+                <span class="label-txt">بتاريـــــخ :</span>
+                <span class="dotted-fill" id="print-issue-date">........................</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Row 3: البريد الإلكتروني & تاريخ الميلاد -->
+          <div class="sheet-row">
+            <div class="sheet-cell cell-right">
+              <span class="label-txt">البريد الإلكتروني :</span>
+              <span class="dotted-fill" id="print-email">...........................................................................</span>
+            </div>
+            <div class="sheet-cell cell-left">
+              <span class="label-txt">تاريـــخ الميـــلاد :</span>
+              <span class="dotted-fill" id="print-birth-date">...................................................</span>
+            </div>
+          </div>
+
+          <!-- Row 4: محل الإقامة الحالي & المحافظة -->
+          <div class="sheet-row">
+            <div class="sheet-cell cell-right">
+              <span class="label-txt">محل الإقامة الحالي :</span>
+              <span class="dotted-fill" id="print-address">...........................................................................</span>
+            </div>
+            <div class="sheet-cell cell-left">
+              <span class="label-txt">المحافظــــــــــــــة :</span>
+              <span class="dotted-fill" id="print-governorate">...................................................</span>
+            </div>
+          </div>
+
+          <!-- Row 5: الدائرة الانتخابية & النقابة المنتمي إليها -->
+          <div class="sheet-row">
+            <div class="sheet-cell cell-right">
+              <span class="label-txt">الدائرة الانتخابيـة :</span>
+              <span class="dotted-fill" id="print-electoral-district">...........................................................................</span>
+            </div>
+            <div class="sheet-cell cell-left">
+              <span class="label-txt">النقابة المنتمي إليها :</span>
+              <span class="dotted-fill" id="print-syndicate">...................................................</span>
+            </div>
+          </div>
+
+          <!-- Row 6: آخر مؤهل ودرجة علمية & الوظيفة -->
+          <div class="sheet-row">
+            <div class="sheet-cell cell-right">
+              <span class="label-txt">آخر مؤهل ودرجة علمية :</span>
+              <span class="dotted-fill" id="print-qualification">...........................................................................</span>
+            </div>
+            <div class="sheet-cell cell-left">
+              <span class="label-txt">الوظيفـــــــــــــــــــة :</span>
+              <span class="dotted-fill" id="print-job-title">...................................................</span>
+            </div>
+          </div>
+
+          <!-- Row 7: محل العمل & قطاع العمل ومجالاته -->
+          <div class="sheet-row">
+            <div class="sheet-cell cell-right">
+              <span class="label-txt">محــــل العمـــــــل :</span>
+              <span class="dotted-fill" id="print-workplace">...........................................................................</span>
+            </div>
+            <div class="sheet-cell cell-left">
+              <span class="label-txt">قطاع العمل ومجالاته :</span>
+              <span class="dotted-fill" id="print-work-sector">...................................................</span>
+            </div>
+          </div>
+
+          <!-- Row 8: رقم التليفون & رقم المحمول -->
+          <div class="sheet-row">
+            <div class="sheet-cell cell-right">
+              <span class="label-txt">رقـــــم التليفــــــون :</span>
+              <span class="dotted-fill" id="print-phone">...........................................................................</span>
+            </div>
+            <div class="sheet-cell cell-left">
+              <span class="label-txt">رقــــم المحمـــــول :</span>
+              <span class="dotted-fill" id="print-mobile">...................................................</span>
+            </div>
+          </div>
+
+          <!-- Row 9: المناصب العامة أو التطوعية -->
+          <div class="sheet-row full-width-row">
+            <div class="sheet-cell cell-full">
+              <span class="label-txt">المناصب العامة أو التطوعية في أية جهات أو مؤسسات حالياً أو سابقاً :</span>
+              <span class="dotted-fill" id="print-public-positions">................................................................................................................................................</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Section: الأنشطة التي يمكن المشاركة فيها -->
+        <div class="sheet-activities-section">
+          <div class="act-header-title">
+            الأنشطة التي يمكن المشاركة فيها :
+          </div>
+
+          <!-- Table of Activities (Identical to original form table) -->
+          <table class="sheet-activities-table">
+            <tbody>
+              <tr>
+                <th>شبابي</th>
+                <th>ثقافي</th>
+                <th>سياسي</th>
+                <th>علمي</th>
+                <th>مرأة</th>
+                <th>جماهيري</th>
+                <th>تنظيم</th>
+              </tr>
+              <tr class="check-box-row">
+                <td id="act-box-شبابي"></td>
+                <td id="act-box-ثقافي"></td>
+                <td id="act-box-سياسي"></td>
+                <td id="act-box-علمي"></td>
+                <td id="act-box-مرأة"></td>
+                <td id="act-box-جماهيري"></td>
+                <td id="act-box-تنظيم"></td>
+              </tr>
+              <tr>
+                <th colspan="2">إعلام</th>
+                <th colspan="2">علاقات عامة</th>
+                <th colspan="2">رياضي</th>
+                <th>استراتيجي</th>
+              </tr>
+              <tr class="check-box-row">
+                <td colspan="2" id="act-box-إعلام"></td>
+                <td colspan="2" id="act-box-علاقات عامة"></td>
+                <td colspan="2" id="act-box-رياضي"></td>
+                <td id="act-box-استراتيجي"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Section: الانتماء لأحزاب أخرى -->
+        <div class="sheet-question-block">
+          <p class="question-line">
+            هل سبق الانتماء لأحزاب أخرى (نعم) (لا) في حال نعم اذكر اسم الحزب أو الأحزاب خلال آخر ٢٠ سنة :
+          </p>
+          <div class="party-lines-grid">
+            <div class="party-line-col">
+              <span class="num-p">١-</span>
+              <span class="dotted-fill" id="print-p1">...................................................................................</span>
+            </div>
+            <div class="party-line-col">
+              <span class="num-p">٣-</span>
+              <span class="dotted-fill" id="print-p3">...................................................................................</span>
+            </div>
+            <div class="party-line-col">
+              <span class="num-p">٢-</span>
+              <span class="dotted-fill" id="print-p2">...................................................................................</span>
+            </div>
+            <div class="party-line-col">
+              <span class="num-p">٤-</span>
+              <span class="dotted-fill" id="print-p4">...................................................................................</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: الترشح في أية انتخابات -->
+        <div class="sheet-question-block">
+          <p class="question-line">
+            هل سبق الترشح في أية انتخابات من قبل (نعم) (لا) في حال ذكر نعم برجاء ذكر جهة الترشيح :
+          </p>
+          <p class="entities-choice-line">
+            (مجلس نواب - مجلس شيوخ - أندية نقابات - مجالس محلية - اتحادات رياضية - مراكز شباب - اتحادات طلابية - أخرى (<span id="print-elections-other">...............</span>))
+          </p>
+          <p class="details-prompt-line">
+            برجاء إثبات أعوام الترشح ونتيجتها وأية بيانات ترغب في إثباتها بشأن النشاط العام والسياسي :
+          </p>
+          <div class="write-lines">
+            <p class="dotted-line" id="print-election-details-line1">................................................................................................................................................................................................</p>
+            <p class="dotted-line" id="print-election-details-line2">................................................................................................................................................................................................</p>
+          </div>
+        </div>
+
+        <!-- Endorser Line -->
+        <div class="sheet-endorser-line">
+          <div class="endorser-part">
+            <span class="label-txt">اسم مؤيد الطلب :</span>
+            <span class="dotted-fill" id="print-endorser-name">........................................................................</span>
+          </div>
+          <div class="endorser-part">
+            <span class="label-txt">صفتـــــــــــه :</span>
+            <span class="dotted-fill" id="print-endorser-title">........................................................</span>
+          </div>
+        </div>
+
+        <!-- Official Pledge & Declarations (EXACT TEXT FROM DOCUMENT) -->
+        <div class="sheet-official-pledge">
+          <h4 class="pledge-to">السيد الفريق/ رئيس الحزب</h4>
+          <p class="pledge-body">
+            أرغب في الانضمام لحزب حماة الوطن .. مؤمناً بلائحته وأهدافه .. مقدراً لكل جهد من أجل رفعة مصرنا الحبيبة
+            وأقر أنني لست عضواً في أي حزب سياسي آخر وبياناتي عالية صحيحة وعلى مسئوليتي.
+          </p>
+          <p class="pledge-closing">وهذا إقرار منى بذلك ...</p>
+        </div>
+
+        <!-- Signatures & Opinion Block -->
+        <div class="sheet-signatures-section">
+          <div class="sig-part-col right-sig">
+            <div class="sig-field">
+              <span class="label-txt">التاريـــــخ :</span>
+              <span class="val-txt" id="print-date-display">&nbsp;&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;/&nbsp;202</span>
+            </div>
+            <div class="sig-field">
+              <span class="label-txt">الـــــرأي :</span>
+              <span class="val-txt dotted-fill" id="print-officer-opinion">..................................................</span>
+            </div>
+          </div>
+
+          <div class="sig-part-col left-sig">
+            <div class="sig-field">
+              <span class="label-txt">الاســـــم :</span>
+              <span class="val-txt dotted-fill" id="print-applicant-name">..................................................</span>
+            </div>
+            <div class="sig-field">
+              <span class="label-txt">التوقيــــع :</span>
+              <span class="val-txt dotted-fill">..................................................</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Attachments & Membership Officer -->
+        <div class="sheet-footer-officer">
+          <div class="officer-box-print">
+            <span class="officer-title">أمين شئون العضوية</span>
+            <span class="officer-dots">( ............................................... )</span>
+          </div>
+          <div class="attachments-note">
+            مرفق صورة الرقم القومي + ٢ صورة شخصية
+          </div>
+        </div>
+
+        <!-- Bottom Banner -->
+        <footer class="sheet-bottom-banner">
+          حزب حماة الوطن - حزب كل المصريين
+        </footer>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Member Detail Modal Dialog -->
+  <dialog id="member-detail-modal" class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-member-title">تفاصيل استمارة العضوية</h3>
+        <button class="modal-close" onclick="closeMemberModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="modal-member-body">
+        <!-- Injected via JS -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-success" id="modal-btn-print">🖨️ طباعة الاستمارة</button>
+        <button class="btn btn-secondary" onclick="closeMemberModal()">إغلاق</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast hidden">
+    <span id="toast-message">تمت العملية بنجاح</span>
+  </div>
+
+  <!-- ====================================================================== -->
+  <!-- TAB: إدارة المستخدمين والصلاحيات (Admin Only) -->
+  <!-- ====================================================================== -->
+  <section id="tab-users" class="tab-pane no-print">
+    <div class="section-header-bar">
+      <div>
+        <h2 class="section-title">👥 إدارة المستخدمين والصلاحيات</h2>
+        <p class="section-sub">إضافة وتعديل وإدارة حسابات مستخدمي النظام وصلاحياتهم</p>
+      </div>
+      <button class="btn btn-primary" onclick="openAddUser()" id="btn-add-user">
+        ➕ مستخدم جديد
+      </button>
+    </div>
+
+    <!-- Roles legend -->
+    <div class="roles-legend">
+      <span class="role-badge badge-admin">مدير النظام — صلاحيات كاملة</span>
+      <span class="role-badge badge-editor">مسؤول التسجيل — إدخال وتعديل</span>
+      <span class="role-badge badge-reviewer">مشرف مراجع — مراجعة واعتماد</span>
+      <span class="role-badge badge-viewer">مستعرض فقط — قراءة فقط</span>
+    </div>
+
+    <div class="db-table-wrap">
+      <table class="db-table" id="users-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>الاسم الكامل / اسم المستخدم</th>
+            <th>الدور</th>
+            <th>الصلاحيات الفعّالة</th>
+            <th>الحالة</th>
+            <th>الإجراءات</th>
+          </tr>
+        </thead>
+        <tbody id="users-table-body">
+          <tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted)">جارٍ التحميل...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- User Add/Edit Modal -->
+  <dialog id="user-modal" class="app-modal">
+    <div class="modal-inner">
+      <div class="modal-header">
+        <h3 id="user-modal-title">إضافة مستخدم جديد</h3>
+        <button class="modal-close-btn" onclick="closeUserModal()" aria-label="إغلاق">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="user-form" onsubmit="return false">
+          <input type="hidden" id="user-modal-id">
+
+          <div class="form-group">
+            <label class="form-label" for="user-modal-fullname">الاسم الكامل *</label>
+            <input type="text" id="user-modal-fullname" class="form-control" placeholder="الاسم الكامل للمستخدم" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="user-modal-username">اسم المستخدم (Username) *</label>
+            <input type="text" id="user-modal-username" class="form-control" placeholder="admin / editor / ..." required dir="ltr">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="user-modal-role">الدور والصلاحية *</label>
+            <select id="user-modal-role" class="form-control" onchange="onRoleChange()">
+              <option value="admin">مدير النظام (Admin)</option>
+              <option value="editor">مسؤول التسجيل والاستمارات (Editor)</option>
+              <option value="reviewer">مشرف ومراجع الطلبات (Reviewer)</option>
+              <option value="viewer" selected>مستعرض البيانات (Viewer)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">الصلاحيات المخصصة</label>
+            <div id="user-modal-perms-grid" class="perms-grid">
+              <!-- Rendered by JS renderPermissionCheckboxes() -->
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="user-modal-pw">
+              كلمة المرور
+              <small id="user-modal-pw-note" style="color:var(--text-muted);font-weight:400;margin-right:6px"></small>
+            </label>
+            <input type="password" id="user-modal-pw" class="form-control" placeholder="كلمة المرور" dir="ltr">
+          </div>
+
+          <div class="form-group" style="display:flex;align-items:center;gap:10px">
+            <input type="checkbox" id="user-modal-active" checked style="width:18px;height:18px;accent-color:var(--primary-gold)">
+            <label for="user-modal-active" class="form-label" style="margin:0">الحساب نشط ومفعّل</label>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="submitUserForm()">💾 حفظ البيانات</button>
+        <button class="btn btn-secondary" onclick="closeUserModal()">إلغاء</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script src="app.js?v=4.0"></script>
+</body>
+</html>

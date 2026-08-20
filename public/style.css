@@ -1975,34 +1975,223 @@ textarea:focus {
 /* ==========================================================================
    Responsive Breakpoints
    ========================================================================== */
+
+/* Prevent horizontal overflow on all screens */
+html, body {
+  overflow-x: hidden;
+}
+
 @media (max-width: 900px) {
   .header-container {
     flex-direction: column;
     align-items: stretch;
+    padding: 0.6rem 1rem;
+    gap: 0.6rem;
   }
 
   .nav-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    justify-content: flex-start;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .nav-tabs::-webkit-scrollbar { display: none; }
+
+  .nav-tab {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .header-actions {
     flex-wrap: wrap;
     justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .btn-home-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
   }
 
   .grid-2-cols {
     grid-template-columns: 1fr;
   }
 
+  .grid-2-subcols {
+    grid-template-columns: 1fr;
+  }
+
+  .mode-options-grid {
+    grid-template-columns: 1fr;
+  }
+
   .form-title-card {
     flex-direction: column;
     text-align: center;
+    padding: 1.25rem 1rem;
   }
 
   .pledge-signatures-grid {
     grid-template-columns: 1fr;
   }
 
+  .membership-type-selector-card {
+    padding: 1.25rem 1rem;
+  }
+
+  .form-section {
+    padding: 1.25rem 1rem;
+  }
+
+  .main-content {
+    padding: 1rem 0.75rem;
+  }
+
+  .search-input-group {
+    flex-wrap: wrap;
+  }
+  .search-input-group .btn {
+    flex-shrink: 0;
+    width: 100%;
+  }
+
+  .print-control-bar {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+
+  .upload-card {
+    flex-wrap: wrap;
+    justify-content: center;
+    text-align: center;
+  }
+
   .a4-sheet-container {
     width: 100%;
+    min-height: auto;
     padding: 1rem;
   }
+
+  .activities-stats-bars {
+    grid-template-columns: 1fr;
+  }
+  .activities-stats-bars .stat-bar-item {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .brand-text .slogan {
+    display: none;
+  }
+
+  .brand-text h1 {
+    font-size: 1.1rem;
+  }
+
+  .header-badge-img {
+    width: 40px;
+    height: 40px;
+  }
+
+  .main-content {
+    padding: 0.75rem 0.5rem;
+  }
+
+  .form-section {
+    padding: 1rem 0.75rem;
+  }
+
+  .membership-type-selector-card {
+    padding: 1rem 0.75rem;
+  }
+
+  .form-title-card {
+    padding: 1rem 0.75rem;
+  }
+
+  .form-wrapper {
+    max-width: 100%;
+  }
+
+  .db-header-card {
+    padding: 1rem;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .db-actions-area {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .filter-item {
+    width: 100%;
+  }
+  .filter-item select {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .table-container {
+    font-size: 0.82rem;
+  }
+  .members-table th,
+  .members-table td {
+    padding: 0.5rem 0.4rem;
+    font-size: 0.78rem;
+  }
+
+  .activities-grid {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.5rem;
+  }
+
+  .election-entities-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  .election-entities-wrap label {
+    flex: 1 1 calc(50% - 0.75rem);
+    font-size: 0.85rem;
+  }
+
+  .form-actions-bar {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .form-actions-bar .btn {
+    width: 100%;
+  }
+
+  .stat-card {
+    flex-wrap: wrap;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .pledge-header {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .official-footer-note .officer-box {
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+  }
+
+  .user-info-box { padding: 4px 8px 4px 6px; }
+  .user-name { display: none; }
+  .roles-legend { flex-direction: column; }
+  #tab-users .section-header-bar { flex-direction: column; gap: 12px; }
 }
 
 /* ==========================================================================

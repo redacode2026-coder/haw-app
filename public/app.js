@@ -8,6 +8,14 @@ let currentViewingMember = null;
 let searchDebounceTimer = null;
 let currentUser = null;  // { id, username, full_name, role }
 
+// ----------------- XSS Protection -----------------
+function escapeHtml(s) {
+  if (s == null) return '';
+  const d = document.createElement('div');
+  d.textContent = String(s);
+  return d.innerHTML;
+}
+
 // Egyptian National ID Governorate Mapping
 const GOVERNORATE_CODES = {
   "01": "القاهرة", "02": "الإسكندرية", "03": "بورسعيد", "04": "السويس",
@@ -562,8 +570,8 @@ async function searchExistingMember() {
           item.className = "dropdown-result-item";
           item.innerHTML = `
             <div>
-              <strong>${m.full_name}</strong>
-              <div class="item-meta">الرقم القومي: ${m.national_id} &bull; رقم العضوية: ${m.membership_number || "HW-" + m.id}</div>
+              <strong>${escapeHtml(m.full_name)}</strong>
+              <div class="item-meta">الرقم القومي: ${escapeHtml(m.national_id)} &bull; رقم العضوية: ${escapeHtml(m.membership_number || "HW-" + m.id)}</div>
             </div>
             <button type="button" class="btn btn-primary btn-sm">اختيار وتعبئة ⚡</button>
           `;
@@ -580,7 +588,7 @@ async function searchExistingMember() {
       }
     } else {
       alertBox.className = "renew-alert-box error";
-      alertBox.innerHTML = `❌ لم يتم العثور على أي عضو مسجل بالبيانات: "<strong>${query}</strong>". يرجى التحقق من الرقم القومي أو الاسم، أو اختيار "عضو جديد" لتسجيل طلب جديد.`;
+      alertBox.innerHTML = `❌ لم يتم العثور على أي عضو مسجل بالبيانات: "<strong>${escapeHtml(query)}</strong>". يرجى التحقق من الرقم القومي أو الاسم، أو اختيار "عضو جديد" لتسجيل طلب جديد.`;
       alertBox.classList.remove("hidden");
     }
   } catch (err) {
@@ -663,7 +671,7 @@ function loadMemberIntoForm(m) {
 
   // Show status banner
   alertBox.className = "renew-alert-box success";
-  alertBox.innerHTML = `✅ تم استرجاع بيانات العضو بنجاح: <strong>${m.full_name}</strong> (رقم العضوية: <strong>${m.membership_number || 'HW-' + m.id}</strong>). تم ملء الاستمارة بالكامل ويمكنك تعديل أو تجديد البيانات.`;
+  alertBox.innerHTML = `✅ تم استرجاع بيانات العضو بنجاح: <strong>${escapeHtml(m.full_name)}</strong> (رقم العضوية: <strong>${escapeHtml(m.membership_number || 'HW-' + m.id)}</strong>). تم ملء الاستمارة بالكامل ويمكنك تعديل أو تجديد البيانات.`;
   alertBox.classList.remove("hidden");
 
   // Update printable sheet
@@ -750,26 +758,26 @@ function renderTableRows(members) {
     const tr = document.createElement("tr");
 
     const acts = Array.isArray(m.activities) ? m.activities : [];
-    const actsHtml = acts.map(a => `<span class="act-tag">${a}</span>`).join(" ");
+    const actsHtml = acts.map(a => `<span class="act-tag">${escapeHtml(a)}</span>`).join(" ");
 
-    const statusClass = `status-${m.status.replace(/\s+/g, "-")}`;
+    const statusClass = `status-${String(m.status || '').replace(/\s+/g, "-")}`;
 
     tr.innerHTML = `
       <td>${idx + 1}</td>
-      <td><span class="member-code-tag">${m.membership_number || "HW-" + m.id}</span></td>
-      <td class="member-name-cell">${m.full_name}</td>
-      <td style="font-family: monospace;">${m.national_id}</td>
-      <td>${m.governorate || "البحيرة"} ${m.electoral_district ? `(${m.electoral_district})` : ""}</td>
-      <td dir="ltr" style="text-align: right;">${m.mobile || "-"}</td>
-      <td>${m.job_title || "-"}</td>
+      <td><span class="member-code-tag">${escapeHtml(m.membership_number || "HW-" + m.id)}</span></td>
+      <td class="member-name-cell">${escapeHtml(m.full_name)}</td>
+      <td style="font-family: monospace;">${escapeHtml(m.national_id)}</td>
+      <td>${escapeHtml(m.governorate || "البحيرة")} ${m.electoral_district ? "(" + escapeHtml(m.electoral_district) + ")" : ""}</td>
+      <td dir="ltr" style="text-align: right;">${escapeHtml(m.mobile || "-")}</td>
+      <td>${escapeHtml(m.job_title || "-")}</td>
       <td>${actsHtml || "<span class='text-muted'>-</span>"}</td>
-      <td><span class="status-badge ${statusClass}">${m.status}</span></td>
+      <td><span class="status-badge ${statusClass}">${escapeHtml(m.status)}</span></td>
       <td>
         <div class="actions-cell">
-          <button class="btn btn-secondary btn-sm" onclick="viewMemberDetails(${m.id})" title="عرض التفاصيل الكاملة">👁️</button>
-          <button class="btn btn-primary btn-sm" onclick="printMemberDirect(${m.id})" title="طباعة الاستمارة الرسمية A4">🖨️</button>
-          <button class="btn btn-outline btn-sm" style="color: var(--navy-dark); border-color: var(--border-color);" onclick="editMember(${m.id})" title="تعديل">✏️</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteMember(${m.id})" title="حذف">🗑️</button>
+          <button class="btn btn-secondary btn-sm" onclick="viewMemberDetails(${parseInt(m.id)})" title="عرض التفاصيل الكاملة">👁️</button>
+          <button class="btn btn-primary btn-sm" onclick="printMemberDirect(${parseInt(m.id)})" title="طباعة الاستمارة الرسمية A4">🖨️</button>
+          <button class="btn btn-outline btn-sm" style="color: var(--navy-dark); border-color: var(--border-color);" onclick="editMember(${parseInt(m.id)})" title="تعديل">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteMember(${parseInt(m.id)})" title="حذف">🗑️</button>
         </div>
       </td>
     `;
@@ -843,38 +851,38 @@ async function viewMemberDetails(id) {
       const elections = Array.isArray(m.elections_entities) ? m.elections_entities.join(" ، ") : "-";
 
       modalBody.innerHTML = `
-        <div style="display: flex; gap: 1.5rem; align-items: center; margin-bottom: 1.5rem; background: var(--bg-page); padding: 1rem; border-radius: var(--radius-md);">
-          <img src="${m.photo_url || 'assets/badge.jpg'}" style="width: 75px; height: 75px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-gold);" alt="صورة العضو">
+        <div style="display: flex; gap: 1.5rem; align-items: center; margin-bottom: 1.5rem; background: var(--bg-page); padding: 1rem; border-radius: var(--radius-md); flex-wrap: wrap;">
+          <img src="${escapeHtml(m.photo_url || 'assets/badge.jpg')}" style="width: 75px; height: 75px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-gold);" alt="صورة العضو">
           <div>
-            <h4 style="font-size: 1.25rem; margin-bottom: 4px; color: var(--navy-dark);">${m.full_name}</h4>
-            <p style="color: var(--text-muted); font-size: 0.9rem;">الرقم القومي: <strong>${m.national_id}</strong> &bull; المحافظة: <strong>${m.governorate || 'البحيرة'}</strong></p>
-            <p style="font-size: 0.85rem; margin-top: 4px;">حالة الطلب: <span class="status-badge status-${m.status.replace(/\s+/g, '-')}">${m.status}</span></p>
+            <h4 style="font-size: 1.25rem; margin-bottom: 4px; color: var(--navy-dark);">${escapeHtml(m.full_name)}</h4>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">الرقم القومي: <strong>${escapeHtml(m.national_id)}</strong> &bull; المحافظة: <strong>${escapeHtml(m.governorate || 'البحيرة')}</strong></p>
+            <p style="font-size: 0.85rem; margin-top: 4px;">حالة الطلب: <span class="status-badge status-${String(m.status || '').replace(/\s+/g, '-')}">${escapeHtml(m.status)}</span></p>
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; font-size: 0.95rem;">
-          <div><strong>اسم الشهرة:</strong> ${m.nickname || '-'}</div>
-          <div><strong>صادر من:</strong> ${m.id_issued_by || '-'} (بتاريخ: ${m.id_issue_date || '-'})</div>
-          <div><strong>البريد الإلكتروني:</strong> ${m.email || '-'}</div>
-          <div><strong>تاريخ الميلاد:</strong> ${m.birth_date || '-'}</div>
-          <div><strong>محل الإقامة:</strong> ${m.address || '-'}</div>
-          <div><strong>الدائرة الانتخابية:</strong> ${m.electoral_district || '-'}</div>
-          <div><strong>النقابة:</strong> ${m.syndicate || '-'}</div>
-          <div><strong>المؤهل العلمي:</strong> ${m.qualification || '-'}</div>
-          <div><strong>الوظيفة:</strong> ${m.job_title || '-'}</div>
-          <div><strong>محل العمل:</strong> ${m.workplace || '-'}</div>
-          <div><strong>المحمول:</strong> ${m.mobile || '-'}</div>
-          <div><strong>التليفون:</strong> ${m.phone || '-'}</div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; font-size: 0.95rem;">
+          <div><strong>اسم الشهرة:</strong> ${escapeHtml(m.nickname || '-')}</div>
+          <div><strong>صادر من:</strong> ${escapeHtml(m.id_issued_by || '-')} (بتاريخ: ${escapeHtml(m.id_issue_date || '-')})</div>
+          <div><strong>البريد الإلكتروني:</strong> ${escapeHtml(m.email || '-')}</div>
+          <div><strong>تاريخ الميلاد:</strong> ${escapeHtml(m.birth_date || '-')}</div>
+          <div><strong>محل الإقامة:</strong> ${escapeHtml(m.address || '-')}</div>
+          <div><strong>الدائرة الانتخابية:</strong> ${escapeHtml(m.electoral_district || '-')}</div>
+          <div><strong>النقابة:</strong> ${escapeHtml(m.syndicate || '-')}</div>
+          <div><strong>المؤهل العلمي:</strong> ${escapeHtml(m.qualification || '-')}</div>
+          <div><strong>الوظيفة:</strong> ${escapeHtml(m.job_title || '-')}</div>
+          <div><strong>محل العمل:</strong> ${escapeHtml(m.workplace || '-')}</div>
+          <div><strong>المحمول:</strong> ${escapeHtml(m.mobile || '-')}</div>
+          <div><strong>التليفون:</strong> ${escapeHtml(m.phone || '-')}</div>
         </div>
 
         <hr style="margin: 1rem 0; border: none; border-top: 1px solid var(--border-light);">
 
         <div style="font-size: 0.95rem; line-height: 1.6;">
-          <p style="margin-bottom: 6px;"><strong>الأنشطة واللجان المختارة:</strong> ${acts}</p>
-          <p style="margin-bottom: 6px;"><strong>انتماء حزبي سابق:</strong> ${m.previous_parties_status === 'yes' ? 'نعم (' + parties + ')' : 'لا'}</p>
-          <p style="margin-bottom: 6px;"><strong>ترشح لانتخابات سابقة:</strong> ${m.elections_nomination_status === 'yes' ? 'نعم (' + elections + ')' : 'لا'}</p>
-          ${m.elections_details ? `<p style="margin-bottom: 6px;"><strong>تفاصيل الترشح:</strong> ${m.elections_details}</p>` : ''}
-          <p style="margin-bottom: 6px;"><strong>مؤيد الطلب:</strong> ${m.endorser_name || '-'} (${m.endorser_title || '-'})</p>
+          <p style="margin-bottom: 6px;"><strong>الأنشطة واللجان المختارة:</strong> ${escapeHtml(acts)}</p>
+          <p style="margin-bottom: 6px;"><strong>انتماء حزبي سابق:</strong> ${m.previous_parties_status === 'yes' ? 'نعم (' + escapeHtml(parties) + ')' : 'لا'}</p>
+          <p style="margin-bottom: 6px;"><strong>ترشح لانتخابات سابقة:</strong> ${m.elections_nomination_status === 'yes' ? 'نعم (' + escapeHtml(elections) + ')' : 'لا'}</p>
+          ${m.elections_details ? '<p style="margin-bottom: 6px;"><strong>تفاصيل الترشح:</strong> ' + escapeHtml(m.elections_details) + '</p>' : ''}
+          <p style="margin-bottom: 6px;"><strong>مؤيد الطلب:</strong> ${escapeHtml(m.endorser_name || '-')} (${escapeHtml(m.endorser_title || '-')})</p>
         </div>
       `;
 
@@ -1090,7 +1098,7 @@ async function fetchStats() {
         item.className = "stat-bar-item";
         item.innerHTML = `
           <div class="bar-header">
-            <span>${act}</span>
+            <span>${escapeHtml(act)}</span>
             <span>${count} عضو (${pct}%)</span>
           </div>
           <div class="bar-progress-bg">
@@ -1168,10 +1176,10 @@ function renderHeaderUser() {
   if (!wrap) return;
   wrap.innerHTML = `
     <div class="user-info-box">
-      <span class="user-avatar">${currentUser.full_name.charAt(0)}</span>
+      <span class="user-avatar">${escapeHtml(currentUser.full_name.charAt(0))}</span>
       <div class="user-details">
-        <span class="user-name">${currentUser.full_name}</span>
-        <span class="role-badge ${info.cls}">${info.label}</span>
+        <span class="user-name">${escapeHtml(currentUser.full_name)}</span>
+        <span class="role-badge ${escapeHtml(info.cls)}">${escapeHtml(info.label)}</span>
       </div>
       <button class="btn-logout" onclick="doLogout()" title="تسجيل الخروج">⏻</button>
     </div>
@@ -1332,13 +1340,13 @@ function renderUsersTable() {
     return `
       <tr>
         <td>${u.id}</td>
-        <td><strong>${u.full_name}</strong>${customTag}<br><small style="color:var(--text-muted)">${u.username}</small></td>
-        <td><span class="role-badge ${rcls}">${rlabel}</span></td>
+        <td><strong>${escapeHtml(u.full_name)}</strong>${customTag}<br><small style="color:var(--text-muted)">${escapeHtml(u.username)}</small></td>
+        <td><span class="role-badge ${rcls}">${escapeHtml(rlabel)}</span></td>
         <td><div style="font-size:1rem;letter-spacing:2px">${permSummary || '<span style="color:var(--text-muted);font-size:0.8rem">لا صلاحيات</span>'}</div></td>
         <td>${activeTxt}</td>
         <td>
           <button class="tbl-action-btn" onclick="openEditUser(${u.id})" title="تعديل الصلاحيات">✏️</button>
-          <button class="tbl-action-btn btn-danger" onclick="deleteUser(${u.id},'${u.full_name}')" title="حذف">🗑️</button>
+          <button class="tbl-action-btn btn-danger" onclick="deleteUser(${parseInt(u.id)}, ${JSON.stringify(u.full_name)})" title="حذف">🗑️</button>
         </td>
       </tr>
     `;

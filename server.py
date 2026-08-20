@@ -14,6 +14,7 @@ import io
 import hashlib
 import secrets
 import threading
+import time
 
 try:
     import openpyxl
@@ -39,12 +40,13 @@ os.makedirs(UPLOADS_DIR, exist_ok=True)
 def hash_password(password, salt=None):
     if salt is None:
         salt = secrets.token_hex(16)
-    hashed = hashlib.sha256((salt + password).encode('utf-8')).hexdigest()
+    hashed = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt.encode('utf-8'), 600000).hex()
     return hashed, salt
 
 def verify_password(password, stored_hash, salt):
-    hashed, _ = hash_password(password, salt)
-    return hashed == stored_hash
+    import hmac as _hmac
+    hashed = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt.encode('utf-8'), 600000).hex()
+    return _hmac.compare_digest(hashed, stored_hash)
 
 # ----------------- Session Store (in-memory) -----------------
 _sessions = {}
@@ -213,8 +215,6 @@ def init_db():
 
     conn.close()
 
-init_db()
-
 # --------------- Default permissions per role ---------------
 DEFAULT_PERMISSIONS = {
     'admin':    ['view_members', 'view_stats', 'add_member', 'edit_member',
@@ -242,15 +242,56 @@ def get_db():
     conn.row_factory = sqlite3.Row
     return conn
 
+# ----------------- Rate Limiting -----------------
+_login_attempts = {}  # ip -> [(timestamp, ...)]
+_login_lock = threading.Lock()
+MAX_LOGIN_ATTEMPTS = 8
+LOGIN_WINDOW = 300  # 5 minutes
+
+def check_rate_limit(ip):
+    now = datetime.datetime.utcnow()
+    with _login_lock:
+        attempts = _login_attempts.get(ip, [])
+        # Remove old attempts outside window
+        attempts = [t for t in attempts if (now - t).total_seconds() < LOGIN_WINDOW]
+        _login_attempts[ip] = attempts
+        if len(attempts) >= MAX_LOGIN_ATTEMPTS:
+            return False
+        attempts.append(now)
+        return True
+
+def _cleanup_rate_limit():
+    """Background thread to clean up old rate limit entries."""
+    while True:
+        time.sleep(300)
+        now = datetime.datetime.utcnow()
+        with _login_lock:
+            expired = [ip for ip, attempts in _login_attempts.items()
+                       if not any((now - t).total_seconds() < LOGIN_WINDOW for t in attempts)]
+            for ip in expired:
+                del _login_attempts[ip]
+
 # ----------------- HTTP Request Handler -----------------
 class PartyAppHandler(http.server.SimpleHTTPRequestHandler):
+    MAX_BODY_SIZE = 10 * 1024 * 1024  # 10MB
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=PUBLIC_DIR, **kwargs)
+
+    def _read_body(self):
+        content_length = int(self.headers.get('Content-Length', 0))
+        if content_length > self.MAX_BODY_SIZE:
+            self._send_json({'error': 'حجم الطلب أكبر من المسموح'}, 413)
+            return None
+        return self.rfile.read(content_length).decode('utf-8')
 
     def end_headers(self):
         self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
         self.send_header("Pragma", "no-cache")
         self.send_header("Expires", "0")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
         super().end_headers()
 
     def _send_json(self, data, status_code=200):
@@ -258,7 +299,9 @@ class PartyAppHandler(http.server.SimpleHTTPRequestHandler):
         self.send_response(status_code)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(response_bytes)))
-        self.send_header("Access-Control-Allow-Origin", "*")
+        origin = self.headers.get('Origin', '')
+        allowed = ['https://web-production-10e79c.up.railway.app', 'http://localhost:8080', 'http://localhost:3000']
+        self.send_header("Access-Control-Allow-Origin", origin if origin in allowed else allowed[0])
         self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
@@ -289,7 +332,9 @@ class PartyAppHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_OPTIONS(self):
         self.send_response(200)
-        self.send_header("Access-Control-Allow-Origin", "*")
+        origin = self.headers.get('Origin', '')
+        allowed = ['https://web-production-10e79c.up.railway.app', 'http://localhost:8080', 'http://localhost:3000']
+        self.send_header("Access-Control-Allow-Origin", origin if origin in allowed else allowed[0])
         self.send_header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
         self.end_headers()
@@ -477,8 +522,9 @@ class PartyAppHandler(http.server.SimpleHTTPRequestHandler):
             if not sess:
                 return
 
-            content_length = int(self.headers.get("Content-Length", 0))
-            body = self.rfile.read(content_length).decode("utf-8")
+            body = self._read_body()
+            if body is None:
+                return
             data = json.loads(body)
 
             full_name = data.get("full_name", "").strip()
@@ -487,6 +533,30 @@ class PartyAppHandler(http.server.SimpleHTTPRequestHandler):
             if not full_name or not national_id:
                 self._send_json({"success": False, "error": "الاسم رباعي والرقم القومي حقول إجبارية"}, 400)
                 return
+
+            # Validate national_id
+            national_id = data.get("national_id", "").strip()
+            if national_id and (not national_id.isdigit() or len(national_id) != 14):
+                self._send_json({"success": False, "error": "الرقم القومي يجب أن يكون 14 رقم"}, 400)
+                return
+
+            # Validate email format if provided
+            email = data.get("email", "").strip()
+            if email and "@" not in email:
+                self._send_json({"success": False, "error": "صيغة البريد الإلكتروني غير صحيحة"}, 400)
+                return
+
+            # Validate mobile format if provided
+            mobile = data.get("mobile", "").strip()
+            if mobile and (not mobile.isdigit() or len(mobile) != 11):
+                self._send_json({"success": False, "error": "رقم المحمول يجب أن يكون 11 رقم"}, 400)
+                return
+
+            # Whitelist status values
+            VALID_STATUSES = ['قيد المراجعة', 'معتمد', 'مقبول', 'مرفوض']
+            status = data.get('status', 'قيد المراجعة')
+            if status not in VALID_STATUSES:
+                status = 'قيد المراجعة'
 
             # Handle base64 photo save if provided
             photo_url = data.get("photo_url", "")
@@ -547,7 +617,7 @@ class PartyAppHandler(http.server.SimpleHTTPRequestHandler):
                 national_id_photo_url,
                 data.get("membership_officer_opinion", ""),
                 data.get("membership_officer_name", ""),
-                data.get("status", "قيد المراجعة"),
+                status,
                 data.get("notes", "")
             ))
             new_id = cursor.lastrowid
@@ -561,7 +631,7 @@ class PartyAppHandler(http.server.SimpleHTTPRequestHandler):
                 "membership_number": data.get("membership_number", code)
             }, 201)
         except Exception as e:
-            self._send_json({"success": False, "error": str(e)}, 500)
+            self._send_json({"success": False, "error": "حدث خطأ داخلي في الخادم"}, 500)
 
     def handle_update_member(self, member_id):
         try:
@@ -569,9 +639,34 @@ class PartyAppHandler(http.server.SimpleHTTPRequestHandler):
             if not sess:
                 return
 
-            content_length = int(self.headers.get("Content-Length", 0))
-            body = self.rfile.read(content_length).decode("utf-8")
+            body = self._read_body()
+            if body is None:
+                return
             data = json.loads(body)
+
+            # Validate national_id
+            national_id = data.get("national_id", "").strip()
+            if national_id and (not national_id.isdigit() or len(national_id) != 14):
+                self._send_json({"success": False, "error": "الرقم القومي يجب أن يكون 14 رقم"}, 400)
+                return
+
+            # Validate email format if provided
+            email = data.get("email", "").strip()
+            if email and "@" not in email:
+                self._send_json({"success": False, "error": "صيغة البريد الإلكتروني غير صحيحة"}, 400)
+                return
+
+            # Validate mobile format if provided
+            mobile = data.get("mobile", "").strip()
+            if mobile and (not mobile.isdigit() or len(mobile) != 11):
+                self._send_json({"success": False, "error": "رقم المحمول يجب أن يكون 11 رقم"}, 400)
+                return
+
+            # Whitelist status values
+            VALID_STATUSES = ['قيد المراجعة', 'معتمد', 'مقبول', 'مرفوض']
+            status = data.get('status', 'قيد المراجعة')
+            if status not in VALID_STATUSES:
+                status = 'قيد المراجعة'
 
             conn = get_db()
             cursor = conn.cursor()
@@ -634,7 +729,7 @@ class PartyAppHandler(http.server.SimpleHTTPRequestHandler):
                 national_id_photo_url,
                 data.get("membership_officer_opinion", existing["membership_officer_opinion"]),
                 data.get("membership_officer_name", existing["membership_officer_name"]),
-                data.get("status", existing["status"]),
+                status,
                 data.get("notes", existing["notes"]),
                 member_id
             ))
@@ -643,7 +738,7 @@ class PartyAppHandler(http.server.SimpleHTTPRequestHandler):
 
             self._send_json({"success": True, "message": "تم تحديث بيانات العضو بنجاح"})
         except Exception as e:
-            self._send_json({"success": False, "error": str(e)}, 500)
+            self._send_json({"success": False, "error": "حدث خطأ داخلي في الخادم"}, 500)
 
     def handle_delete_member(self, member_id):
         try:
@@ -658,7 +753,7 @@ class PartyAppHandler(http.server.SimpleHTTPRequestHandler):
             conn.close()
             self._send_json({"success": True, "message": "تم حذف سجل العضوية بنجاح"})
         except Exception as e:
-            self._send_json({"success": False, "error": str(e)}, 500)
+            self._send_json({"success": False, "error": "حدث خطأ داخلي في الخادم"}, 500)
 
     def handle_get_stats(self):
         sess = self._require_permission('view_stats')
@@ -904,8 +999,15 @@ class PartyAppHandler(http.server.SimpleHTTPRequestHandler):
     # ----------------- Auth Handlers -----------------
     def handle_auth_login(self):
         try:
-            content_length = int(self.headers.get('Content-Length', 0))
-            body = self.rfile.read(content_length).decode('utf-8')
+            # Rate limiting check
+            client_ip = self.client_address[0]
+            if not check_rate_limit(client_ip):
+                self._send_json({'success': False, 'error': 'تم تجاوز الحد المسموح لمحاولات تسجيل الدخول، يرجى المحاولة بعد 5 دقائق'}, 429)
+                return
+
+            body = self._read_body()
+            if body is None:
+                return
             data = json.loads(body)
             username = data.get('username', '').strip().lower()
             password = data.get('password', '')
@@ -942,7 +1044,7 @@ class PartyAppHandler(http.server.SimpleHTTPRequestHandler):
                 }
             })
         except Exception as e:
-            self._send_json({'success': False, 'error': str(e)}, 500)
+            self._send_json({'success': False, 'error': 'حدث خطأ داخلي في الخادم'}, 500)
 
     def handle_auth_logout(self):
         auth = self.headers.get('Authorization', '')
@@ -1007,8 +1109,9 @@ class PartyAppHandler(http.server.SimpleHTTPRequestHandler):
         if not sess:
             return
         try:
-            content_length = int(self.headers.get('Content-Length', 0))
-            body = self.rfile.read(content_length).decode('utf-8')
+            body = self._read_body()
+            if body is None:
+                return
             data = json.loads(body)
             username  = data.get('username', '').strip().lower()
             password  = data.get('password', '').strip()
@@ -1021,6 +1124,9 @@ class PartyAppHandler(http.server.SimpleHTTPRequestHandler):
                 return
             if role not in ('admin', 'editor', 'reviewer', 'viewer'):
                 self._send_json({'success': False, 'error': 'الدور المحدد غير صالح'}, 400)
+                return
+            if password and len(password) < 6:
+                self._send_json({'success': False, 'error': 'كلمة المرور يجب أن تكون 6 أحرف على الأقل'}, 400)
                 return
 
             # Store custom permissions only when they differ from role defaults
@@ -1047,15 +1153,16 @@ class PartyAppHandler(http.server.SimpleHTTPRequestHandler):
             conn.close()
             self._send_json({'success': True, 'id': new_id})
         except Exception as e:
-            self._send_json({'success': False, 'error': str(e)}, 500)
+            self._send_json({'success': False, 'error': 'حدث خطأ داخلي في الخادم'}, 500)
 
     def handle_update_user(self, uid):
         sess = self._require_auth(roles=['admin'])
         if not sess:
             return
         try:
-            content_length = int(self.headers.get('Content-Length', 0))
-            body = self.rfile.read(content_length).decode('utf-8')
+            body = self._read_body()
+            if body is None:
+                return
             data = json.loads(body)
             conn = get_db()
             cursor = conn.cursor()
@@ -1076,6 +1183,10 @@ class PartyAppHandler(http.server.SimpleHTTPRequestHandler):
                 conn.close()
                 self._send_json({'success': False, 'error': 'الدور المحدد غير صالح'}, 400)
                 return
+            if new_password and len(new_password) < 6:
+                conn.close()
+                self._send_json({'success': False, 'error': 'كلمة المرور يجب أن تكون 6 أحرف على الأقل'}, 400)
+                return
 
             # Build permissions JSON: None means "use role defaults"
             if isinstance(custom_perms, list):
@@ -1093,6 +1204,11 @@ class PartyAppHandler(http.server.SimpleHTTPRequestHandler):
                     'UPDATE users SET full_name=?, role=?, is_active=?, password_hash=?, salt=?, permissions=? WHERE id=?',
                     (full_name, role, int(is_active), hashed, salt, perms_json, uid)
                 )
+                # Revoke all sessions for this user
+                with _sessions_lock:
+                    to_delete = [k for k, v in _sessions.items() if v['user_id'] == int(uid)]
+                    for k in to_delete:
+                        del _sessions[k]
             else:
                 cursor.execute(
                     'UPDATE users SET full_name=?, role=?, is_active=?, permissions=? WHERE id=?',
@@ -1102,7 +1218,7 @@ class PartyAppHandler(http.server.SimpleHTTPRequestHandler):
             conn.close()
             self._send_json({'success': True})
         except Exception as e:
-            self._send_json({'success': False, 'error': str(e)}, 500)
+            self._send_json({'success': False, 'error': 'حدث خطأ داخلي في الخادم'}, 500)
 
     def handle_delete_user(self, uid):
         sess = self._require_auth(roles=['admin'])
@@ -1113,6 +1229,22 @@ class PartyAppHandler(http.server.SimpleHTTPRequestHandler):
             return
         conn = get_db()
         cursor = conn.cursor()
+        cursor.execute('SELECT * FROM users WHERE id=?', (uid,))
+        existing = cursor.fetchone()
+        if not existing:
+            conn.close()
+            self._send_json({'success': False, 'error': 'المستخدم غير موجود'}, 404)
+            return
+        existing = dict(existing)
+        # Prevent deleting the last admin
+        if existing.get('role') == 'admin':
+            cursor2 = conn.cursor()
+            cursor2.execute("SELECT COUNT(*) FROM users WHERE role='admin' AND is_active=1")
+            admin_count = cursor2.fetchone()[0]
+            if admin_count <= 1:
+                conn.close()
+                self._send_json({'success': False, 'error': 'لا يمكن حذف آخر مدير نظام'}, 400)
+                return
         cursor.execute('DELETE FROM users WHERE id=?', (uid,))
         conn.commit()
         conn.close()
@@ -1132,13 +1264,25 @@ class PartyAppHandler(http.server.SimpleHTTPRequestHandler):
             filename = f"{prefix}_{int(datetime.datetime.now().timestamp())}_{uuid.uuid4().hex[:6]}.{ext}"
             file_path = os.path.join(UPLOADS_DIR, filename)
             
+            decoded = base64.b64decode(encoded)
+            if len(decoded) > 5 * 1024 * 1024:  # 5MB max
+                return ""
             with open(file_path, "wb") as f:
-                f.write(base64.b64decode(encoded))
+                f.write(decoded)
             
             return f"uploads/{filename}"
         except Exception as e:
             print(f"Error saving base64 file: {e}")
             return ""
+
+def _cleanup_sessions_loop():
+    while True:
+        time.sleep(300)
+        now = datetime.datetime.utcnow()
+        with _sessions_lock:
+            expired = [k for k, v in _sessions.items() if now > v['expires']]
+            for k in expired:
+                del _sessions[k]
 
 def run_server():
     socketserver.TCPServer.allow_reuse_address = True
@@ -1155,6 +1299,9 @@ def run_server():
             except Exception:
                 pass
         threading.Thread(target=open_browser, daemon=True).start()
+
+    threading.Thread(target=_cleanup_sessions_loop, daemon=True).start()
+    threading.Thread(target=_cleanup_rate_limit, daemon=True).start()
 
     with socketserver.ThreadingTCPServer(("0.0.0.0", PORT), PartyAppHandler) as httpd:
         print(f"==================================================")

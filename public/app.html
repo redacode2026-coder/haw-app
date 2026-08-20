@@ -18,7 +18,7 @@
   <!-- Top App Navigation & Header -->
   <header class="app-header no-print">
     <div class="header-container">
-      <div class="brand-box">
+      <div class="brand-box" style="cursor:pointer" onclick="window.location.href='index.html'" title="الذهاب للصفحة الرئيسية">
         <img src="assets/badge.jpg" alt="بادج حزب حماة الوطن - أمانة محافظة البحيرة" class="header-badge-img">
         <div class="brand-text">
           <h1>حزب حُماة الوطن</h1>
@@ -51,7 +51,7 @@
       </nav>
 
       <div class="header-actions">
-        <button class="btn-home-icon" onclick="switchTab('tab-form'); resetForm();" title="الصفحة الرئيسية">
+        <button class="btn-home-icon" onclick="window.location.href='index.html'" title="الذهاب للصفحة الرئيسية">
           🏠
         </button>
         <button class="btn btn-outline" id="btn-export-header" title="تصدير قاعدة البيانات إلى ملف Excel" onclick="exportCSV()">
